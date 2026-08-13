@@ -1,0 +1,20 @@
+2026-08-13 10:21:31 INFO Server started
+2026-08-13 10:22:04 INFO User logged in
+2026-08-13 10:22:47 WARN High memory usage
+2026-08-13 10:23:15 ERROR Database connection failed
+2026-08-13 10:24:02 INFO Request processed
+2026-08-13 10:24:31 ERROR Database connection failed
+2026-08-13 10:25:08 WARN High memory usage
+2026-08-13 10:25:42 INFO User logged in
+2026-08-13 10:26:17 ERROR Request timeout
+2026-08-13 10:27:03 INFO Request processed
+2026-08-13 10:27:41 ERROR Database connection failed
+2026-08-13 10:28:12 INFO Server health check passed
+2026-08-13 10:29:05 WARN High memory usage
+2026-08-13 10:29:44 ERROR Request timeout
+2026-08-13 10:30:21 INFO User logged in
+2026-08-13 10:31:02 ERROR Unauthorized request
+2026-08-13 10:31:39 INFO Request processed
+2026-08-13 10:32:15 INFO Server health check passed
+2026-08-13 10:33:04 ERROR Database connection failed
+2026-08-13 10:33:48 WARN High memory usage
