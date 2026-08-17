@@ -1,15 +1,19 @@
 package game
 
-func Move(key byte, player *Point) {
+func Move(key byte, snake *Snake) {
 	switch key {
 	case 'w':
-		player.Y--
+		// snake.Body[0].Y--
+		snake.Direction = "up"
 	case 's':
-		player.Y++
+		// snake.Body[0].Y++
+		snake.Direction = "down"
 	case 'a':
-		player.X--
+		// snake.Body[0].X--
+		snake.Direction = "left"
 	case 'd':
-		player.X++
+		// snake.Body[0].X++
+		snake.Direction = "right"
 	case 'q':
 		return
 	}
