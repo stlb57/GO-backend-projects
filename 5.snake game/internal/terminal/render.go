@@ -5,7 +5,7 @@ import (
 	"snake1/internal/game"
 )
 
-func DrawBoard(width int, height int, player game.Point) {
+func DrawBoard(width int, height int, snake []game.Point) {
 	fmt.Print("\033[2J\033[H")
 
 	for i := 0; i < height; i++ {
@@ -17,11 +17,32 @@ func DrawBoard(width int, height int, player game.Point) {
 			} else if j == 0 || j == width-1 {
 				fmt.Print("|")
 			} else {
-				if j == player.X-1 && i == player.Y-1 {
-					fmt.Print("@")
-				} else {
+
+
+				//Render snake body
+
+
+				// if j == player.X-1 && i == player.Y-1 {
+				// 	fmt.Print("@")
+				// } else {
+				// 	fmt.Print(" ")
+				// }
+				var pos bool=false
+				for k:=0;k<len(snake);k++{
+					if snake[k].X==j && snake[k].Y==i{
+						if k==0{
+							fmt.Print("@")
+						}else{
+							fmt.Print("#")
+						}
+						pos=true
+					}
+				}
+				if pos==false{
 					fmt.Print(" ")
 				}
+
+
 			}
 		}
 		fmt.Println()
