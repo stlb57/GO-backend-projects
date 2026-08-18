@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
 	"os"
 	"snake1/internal/game"
 	"snake1/internal/terminal"
@@ -11,7 +12,7 @@ import (
 )
 
 func main() {
-
+	score := 0
 	snake := game.Snake{
 		Direction: "up",
 		Body: []game.Point{game.Point{
@@ -19,12 +20,19 @@ func main() {
 			Y: 5,
 		}},
 	}
-	snake.Body = append(snake.Body, game.Point{X: 5, Y: 9})
-	snake.Body = append(snake.Body, game.Point{X: 5, Y: 8})
-	snake.Body = append(snake.Body, game.Point{X: 5, Y: 7})
-	snake.Body = append(snake.Body, game.Point{X: 5, Y: 6})
-	snake.Body = append(snake.Body, game.Point{X: 5, Y: 5})
-	snake.Body = append(snake.Body, game.Point{X: 5, Y: 4})
+
+	food := game.Point{
+		X: int(rand.Float64() * 20),
+		Y: int(rand.Float64() * 10),
+	}
+
+	// //Test snake body
+	// snake.Body = append(snake.Body, game.Point{X: 5, Y: 9})
+	// snake.Body = append(snake.Body, game.Point{X: 5, Y: 8})
+	// snake.Body = append(snake.Body, game.Point{X: 5, Y: 7})
+	// snake.Body = append(snake.Body, game.Point{X: 5, Y: 6})
+	// snake.Body = append(snake.Body, game.Point{X: 5, Y: 5})
+	// snake.Body = append(snake.Body, game.Point{X: 5, Y: 4})
 
 	oldState, err := term.MakeRaw(int(os.Stdin.Fd()))
 	if err != nil {
@@ -35,11 +43,10 @@ func main() {
 	keyChannel := make(chan byte)
 
 	for {
-
+		fmt.Println(score)
 		//Board drawing
-		terminal.DrawBoard(20, 10, snake.Body)
+		terminal.DrawBoard(20, 10, snake.Body, food)
 		fmt.Println("WASD = Move | Q = Quit")
-
 
 		// Concurrent goroutine to check for keypress
 		go func() {
@@ -47,7 +54,6 @@ func main() {
 			os.Stdin.Read(input)
 			keyChannel <- input[0]
 		}()
-
 
 		//Check for key press
 		select {
@@ -58,16 +64,23 @@ func main() {
 		}
 
 		// Primitive collision detection
-		if snake.Body[0].X==0 || snake.Body[0].X==19 || snake.Body[0].Y==0 || snake.Body[0].Y==9{
-			return 
+		if snake.Body[0].X == 0 || snake.Body[0].X == 19 || snake.Body[0].Y == 0 || snake.Body[0].Y == 9 {
+			return
 		}
 
+		//food eat
+		if snake.Body[0].X == food.X && snake.Body[0].Y == food.Y {
+			//update food location
+			food.X = int(rand.Float64() * 20)
+			food.Y = int(rand.Float64() * 10)
+			score++
+		}
 
 		//Keep updating the snake body values
-        for i := len(snake.Body) - 1; i > 0; i-- {
-    snake.Body[i].X = snake.Body[i-1].X
-    snake.Body[i].Y = snake.Body[i-1].Y
-}
+		for i := len(snake.Body) - 1; i > 0; i-- {
+			snake.Body[i].X = snake.Body[i-1].X
+			snake.Body[i].Y = snake.Body[i-1].Y
+		}
 
 		// Keep the snake running
 		switch snake.Direction {
