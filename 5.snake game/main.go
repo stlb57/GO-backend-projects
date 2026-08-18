@@ -15,15 +15,15 @@ func main() {
 	score := 0
 	snake := game.Snake{
 		Direction: "up",
-		Body: []game.Point{game.Point{
+		Body: []game.Point{{
 			X: 10,
 			Y: 5,
 		}},
 	}
 
 	food := game.Point{
-		X: int(rand.Float64() * 20),
-		Y: int(rand.Float64() * 10),
+		X: 1 + int(rand.Float64()*19),
+		Y: 1 + int(rand.Float64()*9),
 	}
 
 	// //Test snake body
@@ -70,10 +70,31 @@ func main() {
 
 		//food eat
 		if snake.Body[0].X == food.X && snake.Body[0].Y == food.Y {
-			//update food location
-			food.X = int(rand.Float64() * 20)
-			food.Y = int(rand.Float64() * 10)
 			score++
+
+			add_node := game.Point{
+				X: snake.Body[len(snake.Body)-1].X,
+				Y: snake.Body[len(snake.Body)-1].Y,
+			}
+			snake.Body = append(snake.Body, add_node)
+
+			//update food location
+			for {
+				food.X = 1 + int(rand.Float64()*19)
+				food.Y = 1 + int(rand.Float64()*9)
+
+				pos := false
+				for k := 0; k < len(snake.Body); k++ {
+					if snake.Body[k].X == food.X && snake.Body[k].Y == food.Y {
+						pos = true
+						break
+					}
+				}
+
+				if !pos {
+					break
+				}
+			}
 		}
 
 		//Keep updating the snake body values
@@ -93,6 +114,14 @@ func main() {
 		case "right":
 			snake.Body[0].X++
 		}
+
+		// Self collision
+		for i := 1; i < len(snake.Body); i++ {
+			if snake.Body[0].X == snake.Body[i].X && snake.Body[0].Y == snake.Body[i].Y {
+				return
+			}
+		}
+
 		time.Sleep(200 * time.Millisecond)
 
 	}
