@@ -22,3 +22,23 @@ func Move(key byte, snake *Snake) bool {
 
 //return true -> quit requested
 //return false -> continue
+
+func RunSnake(snake *Snake) {
+	//Keep updating the snake body values
+	for i := len(snake.Body) - 1; i > 0; i-- {
+		snake.Body[i].X = snake.Body[i-1].X
+		snake.Body[i].Y = snake.Body[i-1].Y
+	}
+
+	// Keep the snake running
+	switch snake.Direction {
+	case "up":
+		snake.Body[0].Y--
+	case "down":
+		snake.Body[0].Y++
+	case "left":
+		snake.Body[0].X--
+	case "right":
+		snake.Body[0].X++
+	}
+}
