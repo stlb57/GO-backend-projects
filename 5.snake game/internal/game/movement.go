@@ -1,6 +1,6 @@
 package game
 
-func Move(key byte, snake *Snake) {
+func Move(key byte, snake *Snake) bool {
 	switch key {
 	case 'w':
 		// snake.Body[0].Y--
@@ -15,6 +15,10 @@ func Move(key byte, snake *Snake) {
 		// snake.Body[0].X++
 		snake.Direction = "right"
 	case 'q':
-		return
+		return true
 	}
+	return false
 }
+
+//return true -> quit requested
+//return false -> continue

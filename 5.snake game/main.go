@@ -11,20 +11,29 @@ import (
 	"golang.org/x/term"
 )
 
+const (
+	boardWidth  = 60
+	boardHeight = 30
+)
+
+func randomFood() game.Point {
+	return game.Point{
+		X: 1 + rand.Intn(boardWidth-2),
+		Y: 1 + rand.Intn(boardHeight-2),
+	}
+}
+
 func main() {
 	score := 0
 	snake := game.Snake{
 		Direction: "up",
 		Body: []game.Point{{
-			X: 10,
-			Y: 5,
+			X: boardWidth / 2,
+			Y: boardHeight / 2,
 		}},
 	}
 
-	food := game.Point{
-		X: 1 + int(rand.Float64()*19),
-		Y: 1 + int(rand.Float64()*9),
-	}
+	food := randomFood()
 
 	// //Test snake body
 	// snake.Body = append(snake.Body, game.Point{X: 5, Y: 9})
@@ -42,10 +51,11 @@ func main() {
 	defer term.Restore(int(os.Stdin.Fd()), oldState)
 	keyChannel := make(chan byte)
 
+gameLoop:
 	for {
 		fmt.Println(score)
 		//Board drawing
-		terminal.DrawBoard(20, 10, snake.Body, food)
+		terminal.DrawBoard(boardWidth, boardHeight, snake.Body, food)
 		fmt.Println("WASD = Move | Q = Quit")
 
 		// Concurrent goroutine to check for keypress
@@ -58,14 +68,17 @@ func main() {
 		//Check for key press
 		select {
 		case key := <-keyChannel:
-			game.Move(key, &snake)
+			quit := game.Move(key, &snake)
+			if quit {
+				break gameLoop
+			}
 
 		default:
 		}
 
 		// Primitive collision detection
-		if snake.Body[0].X == 0 || snake.Body[0].X == 19 || snake.Body[0].Y == 0 || snake.Body[0].Y == 9 {
-			return
+		if snake.Body[0].X == 0 || snake.Body[0].X == boardWidth-1 || snake.Body[0].Y == 0 || snake.Body[0].Y == boardHeight-1 {
+			break gameLoop
 		}
 
 		//food eat
@@ -80,8 +93,7 @@ func main() {
 
 			//update food location
 			for {
-				food.X = 1 + int(rand.Float64()*19)
-				food.Y = 1 + int(rand.Float64()*9)
+				food = randomFood()
 
 				pos := false
 				for k := 0; k < len(snake.Body); k++ {
@@ -118,11 +130,13 @@ func main() {
 		// Self collision
 		for i := 1; i < len(snake.Body); i++ {
 			if snake.Body[0].X == snake.Body[i].X && snake.Body[0].Y == snake.Body[i].Y {
-				return
+				break gameLoop
 			}
 		}
 
-		time.Sleep(200 * time.Millisecond)
+		time.Sleep(100 * time.Millisecond)
 
 	}
+	fmt.Println("GAME OVER")
+	fmt.Printf("SCORE : %d", score)
 }
