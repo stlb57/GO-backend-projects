@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -83,6 +84,42 @@ func search(path string, key string) {
 
 func delete(path string) error {
 	err := os.Remove(path)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// Copy function
+
+// 1. os.Open file
+// 2. create new file at destination
+// 3. io.Reader from file to be copied, copy contents
+// 4. io.Writer to the destined file
+// 5. close file
+// 6. print copied
+
+func Copy(source string, destination string) error {
+	s, err := os.Open(source)
+	if err != nil {
+		return err
+	}
+	defer s.Close()
+	d, err := os.Create(destination)
+	if err != nil {
+		return err
+	}
+	defer d.Close()
+	_, err = io.Copy(d, s)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func Move(source string, destination string) error {
+	err := os.Rename(source, destination)
 	if err != nil {
 		return err
 	}
