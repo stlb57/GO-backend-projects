@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 )
 
 type shortcut struct {
@@ -85,4 +86,87 @@ func Remove(key int) error {
 		return err
 	}
 	return nil
+}
+
+func Edit(key int, field string, value string) error {
+	var shortcuts []shortcut
+
+	file, err := os.Open("shortcuts.json")
+	if err != nil {
+		return err
+	}
+
+	err = json.NewDecoder(file).Decode(&shortcuts)
+	file.Close()
+
+	if err != nil {
+		return err
+	}
+
+	for i := range shortcuts {
+		if shortcuts[i].Key == key {
+			switch field {
+			case "name":
+				shortcuts[i].Name = value
+			case "type":
+				shortcuts[i].Type = value
+			case "target":
+				shortcuts[i].Target = value
+			case "key":
+				return fmt.Errorf("key cannot be edited")
+			default:
+				return fmt.Errorf("invalid field")
+			}
+			break
+		}
+	}
+
+	file, err = os.Create("shortcuts.json")
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	err = json.NewEncoder(file).Encode(shortcuts)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func Run(identifier string) error {
+	var shortcuts []shortcut
+
+	file, err := os.Open("shortcuts.json")
+	if err != nil {
+		return err
+	}
+
+	err = json.NewDecoder(file).Decode(&shortcuts)
+	file.Close()
+
+	if err != nil {
+		return err
+	}
+
+	for _, entry := range shortcuts {
+		if fmt.Sprint(entry.Key) == identifier || entry.ID == identifier {
+			switch entry.Type {
+			case "url":
+				return exec.Command("cmd", "/c", "start", "", entry.Target).Start()
+
+			case "folder":
+				return exec.Command("explorer.exe", entry.Target).Start()
+
+			case "app":
+				return exec.Command(entry.Target).Start()
+
+			default:
+				return fmt.Errorf("invalid shortcut type")
+			}
+		}
+	}
+
+	return fmt.Errorf("shortcut not found")
 }
