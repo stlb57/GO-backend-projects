@@ -3,9 +3,12 @@ package main
 import (
 	"crypto/rand"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"net/url"
 	"os"
 	"os/exec"
+	"strings"
 )
 
 type shortcut struct {
@@ -50,7 +53,7 @@ func Add(key int, name string, pathType string, path string) error {
 	err = json.NewEncoder(file).Encode(shortcuts)
 	if err != nil {
 		return err
-    }
+	}
 	return nil
 }
 
@@ -182,6 +185,49 @@ func Run(identifier string) error {
 	return fmt.Errorf("shortcut not found")
 }
 
+func buildIndex(shortcuts []shortcut) map[string]shortcut {
+	index := make(map[string]shortcut)
+
+	for _, entry := range shortcuts {
+		index[entry.ID] = entry
+	}
+
+	return index
+}
+
+func validateShortcut(key int, name string, shortcutType string, target string) error {
+	var errs []string
+	if key <= 0 {
+		errs = append(errs, "Key should be a positive number")
+	}
+	if strings.TrimSpace(name) == "" {
+		errs = append(errs, "Name cannot be empty string")
+	}
+	if !(shortcutType == "url" || shortcutType == "folder" || shortcutType == "app") {
+		errs = append(errs, "Invalid Shortcut type")
+	}
+	if strings.TrimSpace(target) == "" {
+		errs = append(errs, "Name cannot be empty string")
+	}
+	if shortcutType == "url" {
+		_, err := url.ParseRequestURI(target)
+		if err != nil {
+			errs = append(errs, "Invalid URL")
+		}
+	}
+
+	if shortcutType == "folder" {
+		info, err := os.Stat(target)
+		if err != nil || !info.IsDir() {
+			errs = append(errs, "Invalid folder")
+		}
+	}
+	if len(errs) > 0 {
+		return errors.New(strings.Join(errs, "; "))
+	}
+
+	return nil
+}
 
 func main() {
 	err := Add(1, "youtube", "url", "https://youtube.com")
