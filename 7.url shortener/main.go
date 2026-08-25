@@ -36,10 +36,21 @@ func Add(key int, name string, pathType string, path string) error {
 		return err
 	}
 	shortcuts = append(shortcuts, entry)
-	err = json.NewEncoder(file).Encode(&shortcuts)
+
+	_, err = file.Seek(0, 0)
 	if err != nil {
 		return err
 	}
+
+	err = file.Truncate(0)
+	if err != nil {
+		return err
+	}
+
+	err = json.NewEncoder(file).Encode(shortcuts)
+	if err != nil {
+		return err
+    }
 	return nil
 }
 
@@ -169,4 +180,22 @@ func Run(identifier string) error {
 	}
 
 	return fmt.Errorf("shortcut not found")
+}
+
+
+func main() {
+	err := Add(1, "youtube", "url", "https://youtube.com")
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	err = list()
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	err = Run("1")
+	if err != nil {
+		fmt.Println(err)
+	}
 }
