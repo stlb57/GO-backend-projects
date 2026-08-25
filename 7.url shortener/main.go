@@ -19,6 +19,34 @@ type shortcut struct {
 	Target string `json:"Target"`
 }
 
+type Action interface {
+	Execute() error
+}
+
+type URLAction struct {
+	Target string
+}
+
+func (a URLAction) Execute() error {
+	return exec.Command("cmd", "/c", "start", "", a.Target).Start()
+}
+
+type FolderAction struct {
+	Target string
+}
+
+func (a FolderAction) Execute() error {
+	return exec.Command("explorer.exe", a.Target).Start()
+}
+
+type AppAction struct {
+	Target string
+}
+
+func (a AppAction) Execute() error {
+	return exec.Command(a.Target).Start()
+}
+
 func Add(key int, name string, pathType string, path string) error {
 	entry := shortcut{
 		ID:     rand.Text(),
@@ -164,25 +192,25 @@ func Run(identifier string) error {
 		return err
 	}
 
-	for _, entry := range shortcuts {
-		if fmt.Sprint(entry.Key) == identifier || entry.ID == identifier {
-			switch entry.Type {
-			case "url":
-				return exec.Command("cmd", "/c", "start", "", entry.Target).Start()
-
-			case "folder":
-				return exec.Command("explorer.exe", entry.Target).Start()
-
-			case "app":
-				return exec.Command(entry.Target).Start()
-
-			default:
-				return fmt.Errorf("invalid shortcut type")
-			}
-		}
+	entry, ok := buildIndex(shortcuts)[identifier]
+	if !ok {
+		return fmt.Errorf("shortcut not found")
 	}
 
-	return fmt.Errorf("shortcut not found")
+	var action Action
+
+	switch entry.Type {
+	case "url":
+		action = URLAction{Target: entry.Target}
+	case "folder":
+		action = FolderAction{Target: entry.Target}
+	case "app":
+		action = AppAction{Target: entry.Target}
+	default:
+		return fmt.Errorf("invalid shortcut type")
+	}
+
+	return action.Execute()
 }
 
 func buildIndex(shortcuts []shortcut) map[string]shortcut {
@@ -190,6 +218,7 @@ func buildIndex(shortcuts []shortcut) map[string]shortcut {
 
 	for _, entry := range shortcuts {
 		index[entry.ID] = entry
+		index[fmt.Sprint(entry.Key)] = entry
 	}
 
 	return index
