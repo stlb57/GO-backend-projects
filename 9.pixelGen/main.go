@@ -7,6 +7,7 @@ import (
 	"image/png"
 	"os"
 	"path/filepath"
+	"sync"
 )
 
 const (
@@ -318,24 +319,50 @@ func formatFrameName(frame int) string {
 	return fmt.Sprintf("frame_%03d.png", frame)
 }
 
+type frameResult struct {
+	frame int
+	img   *image.RGBA
+}
+
+func worker(jobs <-chan int, res_images chan<- frameResult, wg *sync.WaitGroup) {
+	defer wg.Done()
+	for frame := range jobs {
+		res_images <- frameResult{frame: frame, img: renderFrame(frame)}
+	}
+}
+
 func main() {
+	jobs := make(chan int, 10)
+	res_images := make(chan frameResult)
+	var wg sync.WaitGroup
 
 	err := os.MkdirAll("frames", 0755)
 	if err != nil {
 		panic(err)
 	}
 
-	for frame := range totalFrames {
+	const workerCount = 4
+	for i := 0; i < workerCount; i++ {
+		wg.Add(1)
+		go worker(jobs, res_images, &wg)
+	}
 
-		img := renderFrame(frame)
+	go func() {
+		for frame := 0; frame < totalFrames; frame++ {
+			jobs <- frame
+		}
+		close(jobs)
+		wg.Wait()
+		close(res_images)
+	}()
 
-		filename := filepath.Join("frames", formatFrameName(frame))
-
-		err := saveFrame(img, filename)
+	for result := range res_images {
+		filename := filepath.Join("frames", formatFrameName(result.frame))
+		err := saveFrame(result.img, filename)
 		if err != nil {
 			panic(err)
 		}
 
-		println("rendered frame", frame)
+		println("rendered frame", result.frame)
 	}
 }
