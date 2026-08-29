@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"image"
 	"image/color"
@@ -345,39 +346,60 @@ func worker(jobs <-chan int, res_images chan<- frameResult, wg *sync.WaitGroup, 
 }
 
 func main() {
-	jobs := make(chan int, 10)
-	res_images := make(chan frameResult)
 	var wg sync.WaitGroup
 	var mu sync.Mutex
 	completedFrames := 0
+
+	bufferSize := flag.Int("buffer", 10, "size of the jobs buffer")
+	workerCount := flag.Int("workers", 4, "number of workers")
+
+	flag.Parse()
+
+	jobs := make(chan int, *bufferSize)
+	res_images := make(chan frameResult)
+
 	err := os.MkdirAll("frames", 0755)
 	if err != nil {
 		panic(err)
 	}
+
 	rootCtx := context.Background()
-	const workerCount = 4
-	for range workerCount {
+
+	for range *workerCount {
 		wg.Add(1)
-		go worker(jobs, res_images, &wg, &completedFrames, &mu, rootCtx)
+		go worker(
+			jobs,
+			res_images,
+			&wg,
+			&completedFrames,
+			&mu,
+			rootCtx,
+		)
 	}
 
 	go func() {
 		for frame := range totalFrames {
 			jobs <- frame
 		}
+
 		close(jobs)
+
 		wg.Wait()
 		close(res_images)
 	}()
-	buffer := make([]frameResult, totalFrames)
-	for result := range res_images {
 
+	buffer := make([]frameResult, totalFrames)
+
+	for result := range res_images {
 		buffer[result.frame] = result
 		println("rendered frame", result.frame)
 	}
-	fmt.Println(completedFrames)
+
+	fmt.Println("completed:", completedFrames)
+
 	for i, result := range buffer {
 		filename := filepath.Join("frames", formatFrameName(i))
+
 		err := saveFrame(result.img, filename)
 		if err != nil {
 			panic(err)
