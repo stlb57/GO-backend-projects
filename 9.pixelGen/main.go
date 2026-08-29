@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"image"
 	"image/color"
@@ -324,13 +325,21 @@ type frameResult struct {
 	img   *image.RGBA
 }
 
-func worker(jobs <-chan int, res_images chan<- frameResult, wg *sync.WaitGroup, completedFrames *int, mu *sync.Mutex) {
+func worker(jobs <-chan int, res_images chan<- frameResult, wg *sync.WaitGroup, completedFrames *int, mu *sync.Mutex, ctx context.Context) {
 	defer wg.Done()
 	for frame := range jobs {
-		res_images <- frameResult{frame: frame, img: renderFrame(frame)}
-		mu.Lock()
-		*completedFrames++
-		mu.Unlock()
+
+		select {
+		case <-ctx.Done():
+			return
+		default:
+
+			res_images <- frameResult{frame: frame, img: renderFrame(frame)}
+			mu.Lock()
+			*completedFrames++
+			mu.Unlock()
+
+		}
 	}
 
 }
@@ -345,11 +354,11 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-
+	rootCtx := context.Background()
 	const workerCount = 4
 	for range workerCount {
 		wg.Add(1)
-		go worker(jobs, res_images, &wg, &completedFrames, &mu)
+		go worker(jobs, res_images, &wg, &completedFrames, &mu, rootCtx)
 	}
 
 	go func() {
