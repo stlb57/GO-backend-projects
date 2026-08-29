@@ -324,18 +324,23 @@ type frameResult struct {
 	img   *image.RGBA
 }
 
-func worker(jobs <-chan int, res_images chan<- frameResult, wg *sync.WaitGroup) {
+func worker(jobs <-chan int, res_images chan<- frameResult, wg *sync.WaitGroup, completedFrames *int, mu *sync.Mutex) {
 	defer wg.Done()
 	for frame := range jobs {
 		res_images <- frameResult{frame: frame, img: renderFrame(frame)}
+		mu.Lock()
+		*completedFrames++
+		mu.Unlock()
 	}
+
 }
 
 func main() {
 	jobs := make(chan int, 10)
 	res_images := make(chan frameResult)
 	var wg sync.WaitGroup
-
+	var mu sync.Mutex
+	completedFrames := 0
 	err := os.MkdirAll("frames", 0755)
 	if err != nil {
 		panic(err)
@@ -344,7 +349,7 @@ func main() {
 	const workerCount = 4
 	for range workerCount {
 		wg.Add(1)
-		go worker(jobs, res_images, &wg)
+		go worker(jobs, res_images, &wg, &completedFrames, &mu)
 	}
 
 	go func() {
@@ -361,7 +366,7 @@ func main() {
 		buffer[result.frame] = result
 		println("rendered frame", result.frame)
 	}
-
+	fmt.Println(completedFrames)
 	for i, result := range buffer {
 		filename := filepath.Join("frames", formatFrameName(i))
 		err := saveFrame(result.img, filename)
