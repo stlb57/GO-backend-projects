@@ -342,27 +342,31 @@ func main() {
 	}
 
 	const workerCount = 4
-	for i := 0; i < workerCount; i++ {
+	for range workerCount {
 		wg.Add(1)
 		go worker(jobs, res_images, &wg)
 	}
 
 	go func() {
-		for frame := 0; frame < totalFrames; frame++ {
+		for frame := range totalFrames {
 			jobs <- frame
 		}
 		close(jobs)
 		wg.Wait()
 		close(res_images)
 	}()
-
+	buffer := make([]frameResult, totalFrames)
 	for result := range res_images {
-		filename := filepath.Join("frames", formatFrameName(result.frame))
+
+		buffer[result.frame] = result
+		println("rendered frame", result.frame)
+	}
+
+	for i, result := range buffer {
+		filename := filepath.Join("frames", formatFrameName(i))
 		err := saveFrame(result.img, filename)
 		if err != nil {
 			panic(err)
 		}
-
-		println("rendered frame", result.frame)
 	}
 }
