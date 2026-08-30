@@ -381,7 +381,6 @@ func main() {
 	}
 
 	go func() {
-		defer close(jobs)
 		for frame := range totalFrames {
 			select {
 			case jobs <- frame:
@@ -389,6 +388,7 @@ func main() {
 				return
 			}
 		}
+		close(jobs)
 		wg.Wait()
 		close(res_images)
 	}()
