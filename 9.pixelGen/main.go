@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 )
 
 const (
@@ -346,6 +347,7 @@ func worker(jobs <-chan int, res_images chan<- frameResult, wg *sync.WaitGroup, 
 }
 
 func main() {
+	start := time.Now()
 	var wg sync.WaitGroup
 	var mu sync.Mutex
 	completedFrames := 0
@@ -363,7 +365,8 @@ func main() {
 		panic(err)
 	}
 
-	rootCtx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	for range *workerCount {
 		wg.Add(1)
@@ -373,17 +376,19 @@ func main() {
 			&wg,
 			&completedFrames,
 			&mu,
-			rootCtx,
+			ctx,
 		)
 	}
 
 	go func() {
+		defer close(jobs)
 		for frame := range totalFrames {
-			jobs <- frame
+			select {
+			case jobs <- frame:
+			case <-ctx.Done():
+				return
+			}
 		}
-
-		close(jobs)
-
 		wg.Wait()
 		close(res_images)
 	}()
@@ -405,4 +410,6 @@ func main() {
 			panic(err)
 		}
 	}
+	fmt.Println("completed:", completedFrames)
+	fmt.Println("time:", time.Since(start))
 }
