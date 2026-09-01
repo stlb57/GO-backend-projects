@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"time"
 
@@ -11,13 +13,13 @@ import (
 )
 
 func main() {
-	url := os.Args[1]
+	inputUrl := os.Args[1]
 
 	client := &http.Client{
 		Timeout: 10 * time.Second,
 	}
 
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequest("GET", inputUrl, nil)
 	if err != nil {
 		fmt.Println("request creation error:", err)
 		return
@@ -40,12 +42,24 @@ func main() {
 	// }
 	doc, err := html.Parse(resp.Body)
 	fmt.Println(doc)
+	u, err := url.Parse(inputUrl)
+	if err != nil {
+		log.Fatal(err)
+	}
 	for n := range doc.Descendants() {
 		if n.Type == html.ElementNode && n.DataAtom == atom.A {
 			for _, a := range n.Attr {
 				if a.Key == "href" {
 					fmt.Println(a.Val)
-					break
+
+					rel, err := u.Parse(a.Val)
+					if err != nil {
+						log.Fatal(err)
+					}
+					if u.Host == rel.Host {
+						fmt.Println(rel)
+						break
+					}
 				}
 			}
 		}
