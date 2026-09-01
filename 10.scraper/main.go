@@ -2,10 +2,12 @@ package main
 
 import (
 	"fmt"
-	"io"
 	"net/http"
 	"os"
 	"time"
+
+	"golang.org/x/net/html"
+	"golang.org/x/net/html/atom"
 )
 
 func main() {
@@ -29,13 +31,23 @@ func main() {
 	defer resp.Body.Close()
 
 	fmt.Println("Status:", resp.Status)
-	fmt.Println("Headers:", resp.Header)
+	// fmt.Println("Headers:", resp.Header)
 
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		fmt.Println("read error:", err)
-		return
+	// body, err := io.ReadAll(resp.Body)
+	// if err != nil {
+	// 	fmt.Println("read error:", err)
+	// 	return
+	// }
+	doc, err := html.Parse(resp.Body)
+	fmt.Println(doc)
+	for n := range doc.Descendants() {
+		if n.Type == html.ElementNode && n.DataAtom == atom.A {
+			for _, a := range n.Attr {
+				if a.Key == "href" {
+					fmt.Println(a.Val)
+					break
+				}
+			}
+		}
 	}
-
-	fmt.Println(string(body))
 }
