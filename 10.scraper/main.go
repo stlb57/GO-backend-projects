@@ -87,7 +87,8 @@ func main() {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-
+	rateLimiter := time.NewTicker(200 * time.Millisecond)
+	defer rateLimiter.Stop()
 	workerCount := 20
 	inputUrl := os.Args[1]
 	maxPages := 20
@@ -120,7 +121,7 @@ func main() {
 			currentBatch++
 
 			fmt.Println("Crawling:", current)
-
+			<-rateLimiter.C
 			wg.Add(1)
 			go crawl(ctx, current, results, &wg)
 		}
