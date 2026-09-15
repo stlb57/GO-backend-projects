@@ -2,17 +2,18 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
+	"sync"
 	"time"
 
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
 )
 
-func crawl(inputUrl string) []string {
+func crawl(inputUrl string, results chan<- []string, wg *sync.WaitGroup) {
+	defer wg.Done()
 	client := &http.Client{
 		Timeout: 10 * time.Second,
 	}
@@ -20,13 +21,13 @@ func crawl(inputUrl string) []string {
 	req, err := http.NewRequest("GET", inputUrl, nil)
 	if err != nil {
 		fmt.Println("request creation error:", err)
-		return nil
+		return
 	}
 
 	resp, err := client.Do(req)
 	if err != nil {
 		fmt.Println("request error:", err)
-		return nil
+		return
 	}
 	defer resp.Body.Close()
 
@@ -41,12 +42,13 @@ func crawl(inputUrl string) []string {
 	doc, err := html.Parse(resp.Body)
 	if err != nil {
 		fmt.Println("parse error:", err)
-		return nil
+		return
 	}
 
 	u, err := url.Parse(inputUrl)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println("URL parse error:", err)
+		return
 	}
 
 	var links []string
@@ -58,7 +60,8 @@ func crawl(inputUrl string) []string {
 					fmt.Println(a.Val)
 					rel, err := u.Parse(a.Val)
 					if err != nil {
-						log.Fatal(err)
+						fmt.Println("URL parse error:", err)
+						continue
 					}
 					if u.Host == rel.Host {
 						fmt.Println(rel)
@@ -70,16 +73,26 @@ func crawl(inputUrl string) []string {
 		}
 	}
 
-	return links
+	results <- links
 }
 
 func main() {
+	var wg sync.WaitGroup
+	workerCount := 20
 	inputUrl := os.Args[1]
+	jobs := make(chan string)
+	results := make(chan []string)
 
 	visited := make(map[string]bool)
+	seen := make(map[string]bool)
+	seen[inputUrl] = true
 	queue := []string{inputUrl}
-
-	for len(queue) > 0 {
+	maxPages := 20
+	for range workerCount {
+		go crawl(<-jobs, results, &wg)
+		wg.Add(1)
+	}
+	for len(queue) > 0 && len(visited) < maxPages {
 		current := queue[0]
 		queue = queue[1:]
 
@@ -91,11 +104,19 @@ func main() {
 
 		fmt.Println("Crawling:", current)
 
-		links := crawl(current)
+		// links := crawl(current)
 
-		for _, link := range links {
-			if !visited[link] {
+		jobs <- current
+
+	}
+	close(jobs)
+	wg.Wait()
+	close(results)
+	for res := range results {
+		for _, link := range res {
+			if !visited[link] && !seen[link] {
 				queue = append(queue, link)
+				seen[link] = true
 			}
 		}
 	}
