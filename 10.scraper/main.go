@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -12,14 +13,21 @@ import (
 	"golang.org/x/net/html/atom"
 )
 
-func crawl(inputUrl string, results chan<- []string, wg *sync.WaitGroup) {
+func crawl(ctx context.Context, inputUrl string, results chan<- []string, wg *sync.WaitGroup) {
 	defer wg.Done()
+
+	select {
+	case <-ctx.Done():
+		results <- nil
+		return
+	default:
+	}
 
 	client := &http.Client{
 		Timeout: 10 * time.Second,
 	}
 
-	req, err := http.NewRequest("GET", inputUrl, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", inputUrl, nil)
 	if err != nil {
 		fmt.Println("request creation error:", err)
 		results <- nil
@@ -77,6 +85,9 @@ func crawl(inputUrl string, results chan<- []string, wg *sync.WaitGroup) {
 func main() {
 	var wg sync.WaitGroup
 
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	workerCount := 20
 	inputUrl := os.Args[1]
 	maxPages := 20
@@ -111,7 +122,7 @@ func main() {
 			fmt.Println("Crawling:", current)
 
 			wg.Add(1)
-			go crawl(current, results, &wg)
+			go crawl(ctx, current, results, &wg)
 		}
 
 		wg.Wait()
@@ -127,6 +138,8 @@ func main() {
 			}
 		}
 	}
+
+	cancel()
 
 	close(jobs)
 	close(results)
