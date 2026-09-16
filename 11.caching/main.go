@@ -64,6 +64,7 @@ func (c *Cache) Get(key string) (string, bool) {
 
 	value, ok = c.data[key]
 
+	//.
 	if !ok {
 		atomic.AddInt64(&c.misses, 1)
 		return "", false
