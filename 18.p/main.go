@@ -28,7 +28,15 @@ func main() {
 	}
 
 	arr, err := os.ReadFile("migrations/001_init.sql")
+	if err != nil {
+		fmt.Println("Couldnt read db")
+		os.Exit(1)
+	}
 	str := string(arr)
 	_, err = pool.Exec(ctx, str)
+	if err != nil {
+		fmt.Println("Couldnt exec db")
+		os.Exit(1)
+	}
 
 }
